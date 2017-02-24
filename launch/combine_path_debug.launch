@@ -3,7 +3,7 @@
 <launch>
   <arg name="waypoints_file" default="$(find orne_navigation_executor)/waypoints_cfg/waypoints_alpha.yaml"/>
   
-  <node name="combine_path" pkg="combine_path" type="combine_path" output="screen">
+  <node name="combine_path" pkg="combine_path" type="combine_path" output="screen" launch-prefix="xterm -e gdb --args">
     <param name="filename" value="$(arg waypoints_file)"/>
   </node>
 </launch>

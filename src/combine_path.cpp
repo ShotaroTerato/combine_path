@@ -28,6 +28,8 @@ CombinePath::CombinePath(ros::NodeHandle& nodeHandle, tf::TransformListener& tf_
     ROS_ERROR("waypoints file doesn't have name");
   }
   
+  makePlan("combine_path", planner_costmap_ros_);
+  
 }
 
 CombinePath::~CombinePath()
@@ -35,8 +37,8 @@ CombinePath::~CombinePath()
 }
 
 bool CombinePath::readParameters(){
-  nodeHandle_.param("robot_frame", robot_frame_, std::string("/base_link"));
-  nodeHandle_.param("world_frame", world_frame_, std::string("/map"));
+  //nodeHandle_.param("robot_frame", robot_frame_, std::string("/base_link"));
+  //nodeHandle_.param("world_frame", world_frame_, std::string("/map"));
   nodeHandle_.param("filename", filename_, filename_);
 }
 
@@ -47,7 +49,7 @@ void CombinePath::combinePath(const std::vector<geometry_msgs::PoseStamped> plan
 }
 
 void CombinePath::makePlan(std::string name, costmap_2d::Costmap2DROS* costmap_ros){
-  navfn::NavfnROS navfnros("~", planner_costmap_ros_);
+  navfn::NavfnROS navfnros(name, costmap_ros);
   for(int i=0; i < waypoints_.size(); i++){
     navfnros.makePlan(waypoints_[i], waypoints_[i+1], plan_);
     CombinePath::combinePath(plan_);

@@ -26,6 +26,8 @@ public:
   bool readFile(const std::string &filename);
   void combinePath(const std::vector<geometry_msgs::PoseStamped> plan);
   void makePlan(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+  void costmapCB(costmap_2d::Costmap2DROS* costmap_ros);
+  ros::Subscriber costmapSubscriber_;
 
 private:
   ros::NodeHandle& nodeHandle_;
