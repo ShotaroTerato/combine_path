@@ -1,0 +1,7 @@
+<library path="lib/libcombine_path">
+  <class name="combine_path/CombinePath" type="combine_path::CombinePath" base_class_type="nav_core::BaseGlobalPlanner">
+    <description>
+      This is a combine path plugin
+    </description>
+  </class>
+</library>
