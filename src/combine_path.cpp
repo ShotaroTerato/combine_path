@@ -51,47 +51,30 @@ bool CombinePath::makePlan(const geometry_msgs::PoseStamped& start, const geomet
     ROS_ERROR("The planner has not been initialized, please call initialize() to use the planner");
     return false;
   }
-  //ros::NodeHandle nh;
-  //ros::Publisher ps_pub = nh.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
-  //while(ros::ok()){
-  //  ROS_INFO_STREAM("publish!");
-  //  ps_pub.publish(waypoints_[0]);
-  //}
-  //for(int i=0; i < plan_.size(); i++){
-  //  if((plan_[i].pose.position.x - start.pose.position.x) * (plan_[i].pose.position.x - start.pose.position.x) + (plan_[i].pose.position.y - start.pose.position.y) * (plan_[i].pose.position.y - start.pose.position.y) <= default_tolerance_ * default_tolerance_){
-  //    plan_.erase(plan_.begin() + i);
-  //  }
-  //}
+
   plan.clear();
   
-  //if(!planned_){
+  if(!planned_){
+    plan.push_back(start);
     ROS_INFO("wp_size = %d", waypoints_.size());
     navfn::NavfnROS navfnros;
     navfnros.initialize("combine_path", costmap_ros_);
     std::vector<geometry_msgs::PoseStamped> part_path;
     part_path.clear();
-    navfnros.makePlan(start, waypoints_[0], plan);
-    //for(int j=0; j < part_path.size(); j++){
-    //  plan_.push_back(part_path[j]);
-    //}
-    //for(int i=0; i < waypoints_.size() - 1; i++){
-    //  part_path.clear();
-    //  navfnros.makePlan(waypoints_[i], waypoints_[i+1], part_path);
-    //  for(int j=0; j < part_path.size(); j++){
-    //    plan_.push_back(part_path[j]);
-    //  }
-    //}
-    //planned_=true;
-    //ROS_INFO_STREAM("planned = true");
-  //}
-  //for(int j=0; j < plan_.size(); j++){
-  //  plan.push_back(plan_[j]);
-  //}
-  if((waypoints_[0].pose.position.x - start.pose.position.x) * (waypoints_[0].pose.position.x - start.pose.position.x) + (waypoints_[0].pose.position.y - start.pose.position.y) * (waypoints_[0].pose.position.y - start.pose.position.y) <= default_tolerance_ * default_tolerance_){
-    waypoints_.erase(waypoints_.begin());
-    //planned_ = false;
-    ROS_INFO_STREAM("planned = false");
+    plan_.clear();
+    navfnros.makePlan(start, waypoints_[0], plan_);
+    for(int i=0; i < waypoints_.size() - 1; i++){
+      part_path.clear();
+      navfnros.makePlan(waypoints_[i], waypoints_[i+1], part_path);
+      for(int j=0; j < part_path.size(); j++){
+        plan_.push_back(part_path[j]);
+      }
+    }
+    planned_=true;
+    ROS_INFO_STREAM("planned = true");
   }
+  plan = plan_;
+
   return !plan.empty();
 }
 
