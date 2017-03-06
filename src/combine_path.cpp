@@ -23,7 +23,16 @@ CombinePath::CombinePath(std::string name, costmap_2d::Costmap2DROS* costmap_ros
 
 void CombinePath::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros){
   if(!initialized_){
-    readParameters();
+    costmap_ros_ = costmap_ros;
+    costmap_ = costmap_ros_->getCostmap();
+    
+    ros::NodeHandle private_nh("~/" + name);
+    private_nh.param("step_size", step_size_, costmap_->getResolution());
+    private_nh.param("min_dist_from_robot", min_dist_from_robot_, 0.10);
+    private_nh.param("filename", filename_, filename_);
+    private_nh.param("default_tolerance", default_tolerance_, 1.5);
+    world_model_ = new base_local_planner::CostmapModel(*costmap_); 
+    
     if(filename_ != ""){
       ROS_INFO_STREAM("Read waypoints data from " << filename_);
       if(!readFile(filename_)){
@@ -32,70 +41,60 @@ void CombinePath::initialize(std::string name, costmap_2d::Costmap2DROS* costmap
     }else{
       ROS_ERROR("waypoints file doesn't have name");
     }
-    costmap_ros_ = costmap_ros;
     initialized_ = true;
-  }
-}
-
-bool CombinePath::readParameters(){
-  ros::NodeHandle nodeHandle_;
-  nodeHandle_.param("filename", filename_, filename_);
-}
-
-void CombinePath::planMethod(){
-//  navfn::NavfnROS navfnros;
-//  navfnros.initialize("combine_path", costmap_ros_);
-//    
-//  while(ros::ok()){
-//    if(!planned_){
-//      for(int i=0; i < waypoints_.size() - 1; i++){
-//        std::vector<geometry_msgs::PoseStamped> plan;
-//        plan.clear();
-//        navfnros.makePlan(waypoints_[i], waypoints_[i+1], plan);
-//        for(int l=0; l < plan.size(); l++){
-//          plan[l].header.frame_id = "/map";
-//        }
-//        for(int j=0; j < plan.size(); j++){
-//          combined_plan_.push_back(plan[j]);
-//        }  
-//        std::vector<geometry_msgs::PoseStamped>().swap(plan);
-//      }
-//      for(int l=0; l < combined_plan_.size(); l++){
-//        combined_plan_[l].header.frame_id = "/map";
-//      }
-//      planned_ = true;
-//    }
-//    navfnros.publishPlan(combined_plan_, 0.0, 1.0, 0.0, 0.0);
-//  }
+  }else
+    ROS_WARN("This planner has already been initialized... doing nothing");
 }
 
 bool CombinePath::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan){
-  //planMethod();
-  navfn::NavfnROS navfnros;
-  navfnros.initialize("combine_path", costmap_ros_);
-    
-  while(ros::ok()){
-    if(!planned_){
-      for(int i=0; i < waypoints_.size() - 1; i++){
-        std::vector<geometry_msgs::PoseStamped> plan;
-        plan.clear();
-        navfnros.makePlan(waypoints_[i], waypoints_[i+1], plan);
-        for(int l=0; l < plan.size(); l++){
-          plan[l].header.frame_id = "/map";
-        }
-        for(int j=0; j < plan.size(); j++){
-          combined_plan_.push_back(plan[j]);
-        }  
-        std::vector<geometry_msgs::PoseStamped>().swap(plan);
-      }
-      for(int l=0; l < combined_plan_.size(); l++){
-        combined_plan_[l].header.frame_id = "/map";
-      }
-      planned_ = true;
-    }
-    navfnros.publishPlan(combined_plan_, 0.0, 1.0, 0.0, 0.0);
+  if(!initialized_){
+    ROS_ERROR("The planner has not been initialized, please call initialize() to use the planner");
+    return false;
   }
+  //ros::NodeHandle nh;
+  //ros::Publisher ps_pub = nh.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
+  //while(ros::ok()){
+  //  ROS_INFO_STREAM("publish!");
+  //  ps_pub.publish(waypoints_[0]);
+  //}
+  //for(int i=0; i < plan_.size(); i++){
+  //  if((plan_[i].pose.position.x - start.pose.position.x) * (plan_[i].pose.position.x - start.pose.position.x) + (plan_[i].pose.position.y - start.pose.position.y) * (plan_[i].pose.position.y - start.pose.position.y) <= default_tolerance_ * default_tolerance_){
+  //    plan_.erase(plan_.begin() + i);
+  //  }
+  //}
+  plan.clear();
+  
+  //if(!planned_){
+    ROS_INFO("wp_size = %d", waypoints_.size());
+    navfn::NavfnROS navfnros;
+    navfnros.initialize("combine_path", costmap_ros_);
+    std::vector<geometry_msgs::PoseStamped> part_path;
+    part_path.clear();
+    navfnros.makePlan(start, waypoints_[0], plan);
+    //for(int j=0; j < part_path.size(); j++){
+    //  plan_.push_back(part_path[j]);
+    //}
+    //for(int i=0; i < waypoints_.size() - 1; i++){
+    //  part_path.clear();
+    //  navfnros.makePlan(waypoints_[i], waypoints_[i+1], part_path);
+    //  for(int j=0; j < part_path.size(); j++){
+    //    plan_.push_back(part_path[j]);
+    //  }
+    //}
+    //planned_=true;
+    //ROS_INFO_STREAM("planned = true");
+  //}
+  //for(int j=0; j < plan_.size(); j++){
+  //  plan.push_back(plan_[j]);
+  //}
+  if((waypoints_[0].pose.position.x - start.pose.position.x) * (waypoints_[0].pose.position.x - start.pose.position.x) + (waypoints_[0].pose.position.y - start.pose.position.y) * (waypoints_[0].pose.position.y - start.pose.position.y) <= default_tolerance_ * default_tolerance_){
+    waypoints_.erase(waypoints_.begin());
+    //planned_ = false;
+    ROS_INFO_STREAM("planned = false");
+  }
+  return !plan.empty();
 }
+
 
 bool CombinePath::readFile(const std::string &filename){
   waypoints_.clear();
@@ -132,33 +131,37 @@ bool CombinePath::readFile(const std::string &filename){
       }
       for(int i=0; i < wp_node->size(); i++){
         double goal_direction = atan2((waypoints_[i+1].pose.position.y - waypoints_[i].pose.position.y),
-                                      (waypoints_[i].pose.position.x - waypoints_[i].pose.position.x));
+                                      (waypoints_[i+1].pose.position.x - waypoints_[i].pose.position.x));
         waypoints_[i].pose.orientation = tf::createQuaternionMsgFromYaw(goal_direction);
-        waypoints_[i].header.frame_id = "/map";
       }
     }else{
       return false;
     }
     
-    //#ifdef NEW_YAMLCPP
-    //  const YAML::Node &fp_node_tmp = node["finish_pose"];
-    //  const YAML::Node *fp_node = fp_node_tmp ? &fp_node_tmp : NULL;
-    //#else
-    //  const YAML::Node *fp_node = node.FindValue("finish_pose");
-    //#endif
-    //
-    //if(fp_node != NULL){
-    //  (*fp_node)["pose"]["position"]["x"] >> finish_pose_.position.x;
-    //  (*fp_node)["pose"]["position"]["y"] >> finish_pose_.position.y;
-    //  (*fp_node)["pose"]["position"]["z"] >> finish_pose_.position.z;
-    //  
-    //  (*fp_node)["pose"]["orientation"]["x"] >> finish_pose_.orientation.x;
-    //  (*fp_node)["pose"]["orientation"]["y"] >> finish_pose_.orientation.y;
-    //  (*fp_node)["pose"]["orientation"]["z"] >> finish_pose_.orientation.z;
-    //  (*fp_node)["pose"]["orientation"]["w"] >> finish_pose_.orientation.w;
-    //}else{
-    //  return false;
-    //}
+    #ifdef NEW_YAMLCPP
+      const YAML::Node &fp_node_tmp = node["finish_pose"];
+      const YAML::Node *fp_node = fp_node_tmp ? &fp_node_tmp : NULL;
+    #else
+      const YAML::Node *fp_node = node.FindValue("finish_pose");
+    #endif
+    
+    if(fp_node != NULL){
+      (*fp_node)["pose"]["position"]["x"] >> finish_pose_.pose.position.x;
+      (*fp_node)["pose"]["position"]["y"] >> finish_pose_.pose.position.y;
+      (*fp_node)["pose"]["position"]["z"] >> finish_pose_.pose.position.z;
+      
+      (*fp_node)["pose"]["orientation"]["x"] >> finish_pose_.pose.orientation.x;
+      (*fp_node)["pose"]["orientation"]["y"] >> finish_pose_.pose.orientation.y;
+      (*fp_node)["pose"]["orientation"]["z"] >> finish_pose_.pose.orientation.z;
+      (*fp_node)["pose"]["orientation"]["w"] >> finish_pose_.pose.orientation.w;
+      
+      waypoints_.push_back(finish_pose_);
+      for(int i=0; i < waypoints_.size(); i++){
+        waypoints_[i].header.frame_id = "/map";
+      }
+    }else{
+      return false;
+    }
     
   }catch(YAML::ParserException &e){
       return false;

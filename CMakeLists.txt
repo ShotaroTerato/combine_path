@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(combine_path)
 
 add_definitions(-std=c++11)
+add_definitions(${EIGEN_DEFINITIONS})
 
 find_package(catkin REQUIRED COMPONENTS
   move_base
@@ -13,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   nav_core
   pluginlib
+  base_local_planner
 )
 
 find_package(PkgConfig)
@@ -29,6 +31,7 @@ catkin_package(
     pluginlib
     costmap_2d
     nav_core
+    base_local_planner
 )
 
 include_directories(
